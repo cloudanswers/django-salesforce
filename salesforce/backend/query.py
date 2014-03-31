@@ -491,6 +491,8 @@ class CursorWrapper(object):
 		while True:
 			for rec in results['records']:
 				if rec['attributes']['type'] == 'AggregateResult' and hasattr(self.query, 'aggregate_select'):
+					# TODO this can help:
+					#   if not isinstance(self.query, SalesforceRawQuery):
 					assert len(rec) -1 == len(list(self.query.aggregate_select.items()))
 					# The 'attributes' info is unexpected for Django within fields.
 					rec = [rec[k] for k, _ in self.query.aggregate_select.items()]
