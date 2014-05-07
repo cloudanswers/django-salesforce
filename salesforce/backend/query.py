@@ -308,7 +308,7 @@ class SalesforceRawQuery(RawQuery):
 		if self.cursor is None:
 			self._execute_query()
 		converter = connections[self.using].introspection.table_name_converter
-		if self.cursor.rowcount > 0:
+		if self.cursor.rowcount > 0 and self.cursor.first_row:
 			return [converter(col) for col in self.cursor.first_row.keys() if col != 'attributes']
 		return ['Id']
 
