@@ -408,6 +408,9 @@ class Opportunity(models.Model):
 	contacts = django.db.models.ManyToManyField(Contact, through='example.OpportunityContactRole', related_name='opportunities')
 	close_date = models.DateField()
 	stage = models.CharField(max_length=255, db_column='StageName') # e.g. "Prospecting"
+	class Meta:
+		# Use primary key name 'id'.
+		sf_pk = 'id'
 
 
 class OpportunityContactRole(models.Model):

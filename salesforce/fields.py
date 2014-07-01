@@ -73,6 +73,7 @@ class SalesforceAutoField(fields.Field):
 			if not cls.sf_pk in ('id', 'Id'):
 				raise ImproperlyConfigured("The Meta option 'sf_pk' must be 'id' or 'Id'.")
 			name = cls.sf_pk
+			self.name = name
 		super(SalesforceAutoField, self).contribute_to_class(cls, name)
 		cls._meta.has_auto_field = True
 		cls._meta.auto_field = self

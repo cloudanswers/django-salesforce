@@ -5,6 +5,9 @@ Tests that do not need to connect servers
 from django.test import TestCase
 from django.db.models import DO_NOTHING
 from salesforce import fields, models
+from salesforce.testrunner.example.models import (Contact,
+		OpportunityContactRole, Opportunity,
+		)
 
 class EasyCharField(models.CharField):
 	def __init__(self, max_length=255, null=True, default='', **kwargs):
@@ -51,3 +54,26 @@ class TestField(TestCase):
 		test(EasyForeignKey(Aa, name='campaign_member'), 'campaign_member_id', 'CampaignMemberId')
 		test(EasyForeignKey(Aa, name='MyCustomForeignField', custom=True), 'MyCustomForeignFieldId', 'MyCustomForeignField__c')
 		test(EasyForeignKey(Aa, name='my_custom_foreign_field', custom=True), 'my_custom_foreign_field_id', 'MyCustomForeignField__c')
+
+	def test_lowercase_pk_name(self):
+		"""
+		Verify that models with Meta sf_pk='id' have the attribute 'id'.
+		"""
+		opportunity = Opportunity(name='test')
+		self.assertEqual(opportunity.id, None)
+		self.assertRaises(AttributeError, getattr, opportunity, 'Id')
+		# Backward compatible models have the primary key 'Id'.
+		contact = Contact(name='test')
+		self.assertEqual(contact.Id, None)
+		self.assertRaises(AttributeError, getattr, contact, 'id')
+
+	def test_lowercase_pk_filters(self):
+		"""
+		Verify that '{related_field}_id' works in filters
+		
+		if the related model has Meta sf_pk='id'.
+		"""
+		qs = OpportunityContactRole.objects.filter(opportunity_id='006000000000000AAA')
+		sql = qs.query.get_compiler('salesforce').as_sql()[0]
+		self.assertIn('FROM OpportunityContactRole WHERE OpportunityContactRole.OpportunityId = %s', sql)
+

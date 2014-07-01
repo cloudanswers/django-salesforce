@@ -42,6 +42,7 @@ class SalesforceModelBase(ModelBase):
 		supplied_db_table = getattr(attr_meta, 'db_table', None)
 		if hasattr(attr_meta, 'sf_pk'):
 			cls.sf_pk = attr_meta.sf_pk
+			delattr(attr_meta, 'sf_pk')
 		result = super(SalesforceModelBase, cls).__new__(cls, name, bases, attrs)
 		if(models.Model not in bases and supplied_db_table is None):
 			result._meta.db_table = name
