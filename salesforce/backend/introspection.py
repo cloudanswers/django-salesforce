@@ -111,6 +111,9 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 		result = []
 		for field in self.table_description_cache(table_name)['fields']:
 			params = SortedDict()
+			import pdb; pdb.set_trace()
+			print(field['name'])
+			# guess_verbose =
 			if field['label'] and field['label'] != camel_case_to_spaces(field['name']):
 				params['verbose_name'] = field['label']
 			if not field['updateable'] or not field['createable']:
