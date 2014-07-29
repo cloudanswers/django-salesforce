@@ -183,7 +183,8 @@ def prep_for_deserialize(model, record, using, init_list=None):
 						fields[x.name] = d.strftime(DJANGO_DATETIME_FORMAT[:-6])
 				else:
 					fields[x.name] = field_val
-
+	if init_list:
+		assert not set(init_list).difference(fields).difference(['Id'])
 
 	return dict(
 		model	= '.'.join([app_label, model.__name__]),
