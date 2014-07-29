@@ -17,6 +17,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import connections
 from django.db.models import query
 from django.db.models.sql import Query, RawQuery, constants, subqueries
+from django.db.models.query_utils import deferred_class_factory
 from django.utils.encoding import force_text
 from django.utils.six import PY3
 
@@ -147,7 +148,7 @@ def handle_api_exceptions(url, f, *args, **kwargs):
 	else:
 		raise base.SalesforceError('%s' % data, data, response, verbose)
 
-def prep_for_deserialize(model, record, using):
+def prep_for_deserialize(model, record, using, init_list=None):
 	# TODO the parameter 'using' is not currently important.
 	attribs = record.pop('attributes')
 
@@ -161,7 +162,7 @@ def prep_for_deserialize(model, record, using):
 
 	fields = dict()
 	for x in model._meta.fields:
-		if not x.primary_key:
+		if not x.primary_key and (not init_list or x.name in init_list):
 			if x.column.endswith('.Type'):
 				# Type of generic foreign key
 				simple_column, _ = x.column.split('.')
@@ -240,7 +241,44 @@ class SalesforceQuerySet(query.QuerySet):
 		cursor.execute(sql, params)
 
 		pfd = prep_for_deserialize
-		for res in python.Deserializer(pfd(self.model, r, self.db) for r in cursor.results):
+
+		only_load = self.query.get_loaded_field_names()
+		load_fields = []
+		# If only/defer clauses have been specified,
+		# build the list of fields that are to be loaded.
+		if not only_load:
+			model_cls = self.model
+			init_list = None
+		else:
+			if DJANGO_16_PLUS:
+				fields = self.model._meta.concrete_fields
+				fields_with_model = self.model._meta.get_concrete_fields_with_model()
+			else:
+				fields = self.model._meta.fields
+				fields_with_model = self.model._meta.get_fields_with_model()
+			for field, model in fields_with_model:
+				if model is None:
+					model = self.model
+				try:
+					if field.name in only_load[model]:
+						# Add a field that has been explicitly included
+						load_fields.append(field.name)
+				except KeyError:
+					# Model wasn't explicitly listed in the only_load table
+					# Therefore, we need to load all fields from this model
+					load_fields.append(field.name)
+
+			init_list = []
+			skip = set()
+			for field in fields:
+				if field.name not in load_fields:
+					skip.add(field.attname)
+				else:
+					init_list.append(field.name)
+			model_cls = deferred_class_factory(self.model, skip)
+
+		field_names = self.query.get_loaded_field_names()
+		for res in python.Deserializer(pfd(model_cls, r, self.db, init_list) for r in cursor.results):
 			# Store the source database of the object
 			res.object._state.db = self.db
 			# This object came from the database; it's not being added.
