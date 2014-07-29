@@ -11,6 +11,7 @@ Salesforce object query customizations.
 
 import logging, types, datetime, decimal
 
+from collections import OrderedDict
 from django.conf import settings
 from django.core.serializers import python
 from django.core.exceptions import ImproperlyConfigured
@@ -366,6 +367,10 @@ class CursorWrapper(object):
 		self.results = None
 		self.rowcount = None
 		self.first_row = None
+		# Results of directly executed custom SOQL are parsed by OrderedDict
+		# instead of dict, because the order is useful and field names for
+		# aggregate fields (like 'expr0') are not nice. 
+		self.object_pairs_hook = None if query else OrderedDict
 
 	def __enter__(self):
 		return self
@@ -403,7 +408,7 @@ class CursorWrapper(object):
 			# converting from the json number to a float to a Decimal object
 			# on a model's DecimalField...converts from json number directly
 			# a Decimal object
-			data = response.json(parse_float=decimal.Decimal)
+			data = response.json(parse_float=decimal.Decimal, object_pairs_hook=self.object_pairs_hook)
 			# a SELECT query
 			if('totalSize' in data):
 				self.rowcount = data['totalSize']
@@ -504,7 +509,7 @@ class CursorWrapper(object):
 			# see about Retrieving the Remaining SOQL Query Results
 			# http://www.salesforce.com/us/developer/docs/api_rest/Content/dome_query.htm#retrieve_remaining_results_title
 			response = self.query_more(results['nextRecordsUrl'])
-			results = response.json(parse_float=decimal.Decimal)
+			results = response.json(parse_float=decimal.Decimal, object_pairs_hook=self.object_pairs_hook)
 
 	def __iter__(self):
 		return iter(self.results)
