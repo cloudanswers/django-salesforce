@@ -75,6 +75,7 @@ def authenticate(db_alias=None, settings_dict=None):
 		return oauth_data[db_alias]
 
 def reauthenticate(db_alias):
+	# TODO this must be fixed to work also with dynamic authorization tokens.
 	expire_token(db_alias)
 	oauth = authenticate(db_alias=db_alias)
 	return oauth['access_token']
@@ -88,7 +89,28 @@ class SalesforceAuth(AuthBase):
 	"""
 	def __init__(self, db_alias):
 		self.db_alias = db_alias
+		self.dynamic_token = None
 
 	def __call__(self, r):
-		r.headers['Authorization'] = 'OAuth %s' % authenticate(db_alias=self.db_alias)['access_token']
+		if self.dynamic_token:
+			access_token = self.dynamic_token
+		else:
+			access_token = authenticate(db_alias=self.db_alias)['access_token']
+		r.headers['Authorization'] = 'OAuth %s' % access_token
 		return r
+
+	def dynamic_start(self, access_token):
+		"""
+		Set the access token dynamically according to the current user.
+
+		Use it typically at the beginning of Django request in your middleware by:
+			connections['salesforce'].sf_session.auth.dynamic_start(access_token)
+		"""
+		self.dynamic_token = access_token
+
+	def dynamic_end(self):
+		"""
+		Clear the dynamic access token.
+		"""
+		self.dynamic_token = None
+
