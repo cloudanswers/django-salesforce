@@ -3,7 +3,12 @@ Dummy Salesforce driver that simulates some parts of DB API 2
 
 used by the new Django >= 1.6b2
 """
-from django.utils.six import PY3
+try:
+	from django.utils.six import PY3
+except ImportError:  # Django 1.3
+	import sys
+	PY3 = sys.version_info[0] == 3
+	assert not PY3
 
 import logging
 log = logging.getLogger(__name__)

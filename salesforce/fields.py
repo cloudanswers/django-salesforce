@@ -14,8 +14,12 @@ from django.core import exceptions
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import fields
 from django.db import models
-from django.utils.encoding import smart_text
-from django.utils.six import string_types
+try:
+	from django.utils.encoding import smart_text
+	from django.utils.six import string_types
+except ImportError:  # Django 1.3
+	from django.utils.encoding import smart_unicode as smart_text
+	string_types = basestring,
 try:
 	## in south >= 0.6, we have to explicitly tell south about this
 	## custom field.  Even though it will be on an unmanaged model, 

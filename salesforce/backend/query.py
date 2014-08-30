@@ -17,8 +17,14 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import connections
 from django.db.models import query
 from django.db.models.sql import Query, RawQuery, constants, subqueries
-from django.utils.encoding import force_text
-from django.utils.six import PY3
+try:
+	from django.utils.encoding import force_text
+	from django.utils.six import PY3
+except ImportError:  # Django 1.3
+	from django.utils.encoding import force_unicode as force_text
+	import sys
+	PY3 = sys.version_info[0] == 3
+	assert not PY3
 
 from itertools import islice
 
@@ -164,16 +170,6 @@ def prep_for_deserialize(model, record, using):
 				# Type of generic foreign key
 				simple_column, _ = x.column.split('.')
 				fields[x.name] = record[simple_column]['Type']
-			field_val = record[x.column]
-			db_type = x.db_type(connection=connections[using])
-			if(x.__class__.__name__ == 'DateTimeField' and field_val is not None):
-				d = datetime.datetime.strptime(field_val, SALESFORCE_DATETIME_FORMAT)
-				import pytz
-				d = d.replace(tzinfo=pytz.utc)
-				fields[x.name] = d.strftime(DJANGO_DATETIME_FORMAT)
-			elif (x.__class__.__name__ == 'TimeField' and field_val is not None
-					and not DJANGO_14 and field_val.endswith('Z')):
-				fields[x.name] = field_val[:-1]  # Fix time e.g. "23:59:59.000Z"
 			else:
 				# Normal fields
 				field_val = record[x.column]
@@ -188,6 +184,9 @@ def prep_for_deserialize(model, record, using):
 						tz = pytz.timezone(settings.TIME_ZONE)
 						d = tz.normalize(d.astimezone(tz))
 						fields[x.name] = d.strftime(DJANGO_DATETIME_FORMAT[:-6])
+				elif (x.__class__.__name__ == 'TimeField' and field_val is not None
+						and not DJANGO_14_PLUS and field_val.endswith('Z')):
+					fields[x.name] = field_val[:-1]  # Fix time e.g. "23:59:59.000Z"
 				else:
 					fields[x.name] = field_val
 
