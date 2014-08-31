@@ -22,7 +22,7 @@ class DynamicAuthTest(TestCase):
 		#_ = list(Contact.objects.all(using='salesforce2')[:1])
 		with connections['salesforce2'].cursor() as cursor:
 			access_token = cursor.oauth['access_token']
-			print(cursor.oauth)
+			#print(cursor.oauth)
 		# verify fail
 		self.assertConnectionProblem(users)
 		# dynamic auth
