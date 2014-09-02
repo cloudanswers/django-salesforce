@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 from django.test import TestCase
-from tests.test_mixin.models import User
+from tests.test_mixin.models import Contact
 
 class MixinTest(TestCase):
 	def test_mixin(self):
-		users = User.objects.all()
-		self.assertGreater(len(users[:2]), 0)
+		contacts = Contact.objects.all()
+		self.assertGreater(len(contacts[:2]), 0)
