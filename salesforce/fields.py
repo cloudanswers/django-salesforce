@@ -72,7 +72,15 @@ class SalesforceAutoField(fields.Field):
 		return self.to_python(value)
 	
 	def contribute_to_class(self, cls, name):
-		assert not cls._meta.has_auto_field, "A model can't have more than one AutoField."
+		if cls._meta.has_auto_field:
+			if name == cls._meta.auto_field.name and type(self) == type(cls._meta.auto_field):
+				print("INFO: The model %s has exactly the same AutoField still: %s: %s"
+					% (cls, name, self))
+			else:
+				print("WARNING: A model can't have more than one AutoField: %s: (%s=%s, %s=%s)"
+					% (cls, cls._meta.auto_field.name, cls._meta.auto_field, name, self))
+			return
+		#assert not cls._meta.has_auto_field, "A model can't have more than one AutoField."
 		if hasattr(cls, 'sf_pk'):
 			if not cls.sf_pk in ('id', 'Id'):
 				raise ImproperlyConfigured("The Meta option 'sf_pk' must be 'id' or 'Id'.")
