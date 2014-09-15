@@ -30,6 +30,7 @@ from itertools import islice
 
 import requests
 import pytz
+import json
 
 from salesforce import auth, models, DJANGO_14_PLUS, DJANGO_16_PLUS, DJANGO_17_PLUS
 from salesforce.backend import compiler, sf_alias
@@ -80,6 +81,9 @@ def process_json_args(args):
 	Perform necessary JSON quoting on the arg list.
 	"""
 	def _escape(item, conv):
+		# Edit for List and Dict fields
+		if type(item) == list or type(item) == dict:
+			return json.dumps(item)
 		if(isinstance(item, models.SalesforceModel)):
 			return conv.get(models.SalesforceModel, conv[str])(item, conv)
 		if(isinstance(item, decimal.Decimal)):
